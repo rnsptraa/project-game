@@ -1030,19 +1030,21 @@
       }
 
       // Update Obstacles
-      for (let i = obstacles.length - 1; i >= 0; i--) {
-        const obs = obstacles[i];
-        obs.mesh.position.z -= moveDistance;
-        obs.box.setFromCenterAndSize(
-          obs.mesh.position,
-          obs.box.getSize(new THREE.Vector3())
-        );
+for (let i = obstacles.length - 1; i >= 0; i--) {
+  const obs = obstacles[i];
 
-        if (obs.mesh.position.z < -15) {
-          scene.remove(obs.mesh);
-          obstacles.splice(i, 1);
-        }
-      }
+  // Gerakkan obstacle
+  obs.mesh.position.z -= moveDistance;
+
+  // Gerakkan collision box hanya pada sumbu Z.
+  // Posisi Y collision tetap sesuai jenis obstacle.
+  obs.box.translate(new THREE.Vector3(0, 0, -moveDistance));
+
+  if (obs.mesh.position.z < -15) {
+    scene.remove(obs.mesh);
+    obstacles.splice(i, 1);
+  }
+}
 
       // Update Collectibles (Animasi Rotasi & Melayang)
       for (let i = collectibles.length - 1; i >= 0; i--) {
