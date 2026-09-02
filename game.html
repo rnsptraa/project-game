@@ -1,0 +1,1505 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mist Walker: Pelarian Mistis</title>
+  <style>
+    /* CSS GLOBAL & RESET */
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+      -webkit-user-select: none;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+    body, html {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background-color: #050508;
+      color: #fff;
+    }
+    #game-container {
+      width: 100%;
+      height: 100%;
+      position: absolute;
+      top: 0;
+      left: 0;
+      z-index: 1;
+    }
+    canvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    /* UI SCREENS CONTAINER */
+    .ui-layer {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 10;
+      pointer-events: none;
+    }
+    .screen {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      pointer-events: auto;
+      transition: opacity 0.5s ease;
+      background: rgba(5, 5, 12, 0.75);
+    }
+    .hidden {
+      display: none !important;
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    /* TYPOGRAPHY & BUTTONS */
+    h1 {
+      font-size: 3rem;
+      color: #a855f7;
+      text-shadow: 0 0 20px #a855f7, 0 0 40px #6b21a8;
+      letter-spacing: 4px;
+      margin-bottom: 20px;
+      text-align: center;
+      text-transform: uppercase;
+    }
+    p {
+      color: #cbd5e1;
+      margin-bottom: 15px;
+      text-align: center;
+    }
+    .btn {
+      background: linear-gradient(135deg, #6b21a8, #3b0764);
+      border: 2px solid #a855f7;
+      color: #fff;
+      padding: 12px 36px;
+      font-size: 1.2rem;
+      font-weight: bold;
+      border-radius: 30px;
+      cursor: pointer;
+      margin: 10px;
+      box-shadow: 0 0 15px rgba(168, 85, 247, 0.4);
+      transition: all 0.2s ease;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+    }
+    .btn:hover {
+      background: linear-gradient(135deg, #a855f7, #6b21a8);
+      box-shadow: 0 0 25px rgba(168, 85, 247, 0.8);
+      transform: scale(1.05);
+    }
+
+    /* SPLASH SCREEN */
+    #splash-screen {
+      background: radial-gradient(circle at center, #1e1b4b 0%, #020617 100%);
+      z-index: 100;
+    }
+    .progress-container {
+      width: 300px;
+      height: 16px;
+      background: #1e293b;
+      border-radius: 8px;
+      border: 1px solid #64748b;
+      overflow: hidden;
+      margin-top: 20px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.5);
+    }
+    .progress-bar {
+      width: 0%;
+      height: 100%;
+      background: linear-gradient(90deg, #9333ea, #c084fc);
+      transition: width 0.1s ease;
+      box-shadow: 0 0 10px #c084fc;
+    }
+
+    /* HOW TO PLAY & DIALOGS */
+    .dialog-box {
+      background: rgba(15, 23, 42, 0.9);
+      border: 2px solid #a855f7;
+      padding: 30px;
+      border-radius: 16px;
+      max-width: 500px;
+      width: 90%;
+      box-shadow: 0 0 30px rgba(168, 85, 247, 0.3);
+    }
+    .controls-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin: 20px 0;
+      text-align: left;
+    }
+    .controls-grid div {
+      background: rgba(255, 255, 255, 0.05);
+      padding: 8px 12px;
+      border-radius: 6px;
+      border-left: 3px solid #a855f7;
+    }
+
+    /* HUD (GAMEPLAY) */
+    #hud {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 20px;
+      box-sizing: border-box;
+    }
+    .hud-top {
+      display: flex;
+      justify-content: space-between;
+      width: 100%;
+      font-size: 1.4rem;
+      font-weight: bold;
+      text-shadow: 2px 2px 4px #000;
+    }
+    .energy-container {
+      width: 200px;
+      height: 20px;
+      background: rgba(0, 0, 0, 0.6);
+      border: 2px solid #3b82f6;
+      border-radius: 10px;
+      overflow: hidden;
+      margin-top: 5px;
+    }
+    .energy-fill {
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, #2563eb, #60a5fa);
+      transition: width 0.2s ease;
+    }
+    .skill-status {
+      font-size: 0.9rem;
+      color: #38bdf8;
+      margin-top: 4px;
+      font-weight: normal;
+    }
+
+    /* VIRTUAL MOBILE CONTROLS */
+    .mobile-controls {
+      display: none;
+      pointer-events: auto;
+      width: 100%;
+      justify-content: space-between;
+      align-items: flex-end;
+      padding-bottom: 10px;
+    }
+    .d-pad {
+      display: grid;
+      grid-template-columns: repeat(3, 50px);
+      grid-template-rows: repeat(2, 50px);
+      gap: 5px;
+    }
+    .touch-btn {
+      background: rgba(255, 255, 255, 0.15);
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      border-radius: 8px;
+      color: white;
+      font-weight: bold;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      touch-action: manipulation;
+    }
+    .touch-btn:active {
+      background: rgba(168, 85, 247, 0.5);
+    }
+    @media (max-width: 768px) {
+      .mobile-controls { display: flex; }
+      h1 { font-size: 2rem; }
+    }
+
+    /* VIGNETTE EFFECT */
+    #vignette {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      pointer-events: none;
+      z-index: 5;
+      background: radial-gradient(
+        ellipse at center,
+        transparent 50%,
+        rgba(0, 0, 10, 0.75) 100%
+      );
+      transition: opacity 0.3s ease;
+    }
+    #vignette.danger {
+      background: radial-gradient(
+        ellipse at center,
+        transparent 40%,
+        rgba(80, 0, 0, 0.85) 100%
+      );
+    }
+  </style>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+</head>
+<body>
+
+  <div id="game-container"></div>
+  <div id="vignette"></div>
+
+  <div class="ui-layer">
+
+    <div id="splash-screen" class="screen">
+      <h1>MIST WALKER</h1>
+      <p style="letter-spacing: 2px;">PELARIAN MISTIS</p>
+      <div class="progress-container">
+        <div id="progress-bar" class="progress-bar"></div>
+      </div>
+      <p id="loading-text" style="margin-top: 10px; font-size: 0.9rem; color: #94a3b8;">MEMUAT DUNIA MISTIS...</p>
+    </div>
+
+    <div id="main-menu" class="screen hidden">
+      <h1>MIST WALKER</h1>
+      <p style="color: #c084fc; margin-bottom: 30px;">Endless Runner Mistis Indonesia</p>
+      <button class="btn" id="btn-play">PLAY</button>
+      <button class="btn" id="btn-how">HOW TO PLAY</button>
+    </div>
+
+    <div id="how-screen" class="screen hidden">
+      <div class="dialog-box">
+        <h2 style="color: #a855f7; text-align: center; margin-bottom: 15px;">KONTROL PERMAINAN</h2>
+        <div class="controls-grid">
+          <div><b>A / ←</b> : Pindah Kiri</div>
+          <div><b>D / →</b> : Pindah Kanan</div>
+          <div><b>W / ↑ / Space</b> : Lompat</div>
+          <div><b>S / ↓</b> : Slide / Merunduk</div>
+          <div><b>E</b> : Skill Mist Walk</div>
+          <div><b>ESC / P</b> : Pause Game</div>
+        </div>
+        <p style="font-size: 0.85rem; color: #94a3b8;">Kumpulkan <b>Jamur Ungu 🍄</b> untuk poin dan <b>Spirit Biru 🔮</b> untuk Energy skill Mist Walk (Menembus Rintangan)!</p>
+        <div style="text-align: center; margin-top: 20px;">
+          <button class="btn" id="btn-back">BACK</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="hud" class="hidden">
+      <div class="hud-top">
+        <div>
+          <div>SCORE: <span id="hud-score" style="color:#c084fc;">0</span></div>
+          <div style="font-size: 1rem; color: #94a3b8;">BEST: <span id="hud-best">0</span></div>
+        </div>
+        <div style="text-align: right;">
+          <div>DISTANCE: <span id="hud-distance" style="color:#38bdf8;">0</span> m</div>
+          <div style="margin-top: 5px; display: inline-block;">
+            <div class="energy-container">
+              <div id="energy-fill" class="energy-fill"></div>
+            </div>
+            <div id="skill-status" class="skill-status">MIST WALK [E]: READY</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="mobile-controls">
+        <div class="d-pad">
+          <div></div>
+          <div class="touch-btn" id="t-up" style="grid-column: 2;">▲</div>
+          <div></div>
+          <div class="touch-btn" id="t-left">◀</div>
+          <div class="touch-btn" id="t-down">▼</div>
+          <div class="touch-btn" id="t-right">▶</div>
+        </div>
+        <div class="touch-btn" id="t-skill" style="width: 70px; height: 70px; border-radius: 50%; background: rgba(56, 189, 248, 0.3); border-color: #38bdf8;">MIST</div>
+      </div>
+    </div>
+
+    <div id="pause-screen" class="screen hidden">
+      <h1>PAUSED</h1>
+      <button class="btn" id="btn-resume">RESUME</button>
+      <button class="btn" id="btn-pause-menu">MAIN MENU</button>
+    </div>
+
+    <div id="gameover-screen" class="screen hidden">
+      <h1 style="color: #ef4444; text-shadow: 0 0 20px #ef4444;">GAME OVER</h1>
+      <div class="dialog-box" style="text-align: center; margin-bottom: 20px;">
+        <p style="font-size: 1.2rem;">SCORE AKHIR: <b id="go-score" style="color: #c084fc;">0</b></p>
+        <p style="font-size: 1.2rem;">BEST SCORE: <b id="go-best" style="color: #facc15;">0</b></p>
+        <p style="font-size: 1.2rem;">JARAK TEMPUH: <b id="go-distance" style="color: #38bdf8;">0 m</b></p>
+      </div>
+      <div>
+        <button class="btn" id="btn-retry">RETRY</button>
+        <button class="btn" id="btn-go-menu">MAIN MENU</button>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    // ==========================================
+    // 1. GAME CONSTANTS & GLOBALS
+    // ==========================================
+    const LANES = [3.5, 0, -3.5];
+    const GAME_STATES = { SPLASH: 0, MENU: 1, PLAYING: 2, PAUSED: 3, GAMEOVER: 4 };
+    let currentState = GAME_STATES.SPLASH;
+
+    let scene, camera, renderer;
+    let clock = new THREE.Clock();
+    let container = document.getElementById('game-container');
+
+    // Game stats
+    let score = 0;
+    let distance = 0;
+    let bestScore = parseInt(localStorage.getItem('mw_best_score') || '0');
+    let energy = 100;
+    let speed = 25;
+    const baseSpeed = 25;
+    const maxSpeed = 65;
+
+    // Player state
+    let playerGroup, playerMesh;
+    let currentLane = 1; // 0: Kiri, 1: Tengah, 2: Kanan
+    let targetX = 0;
+    let playerY = 0;
+    let isJumping = false;
+    let isSliding = false;
+    let jumpVelocity = 0;
+    const gravity = -45;
+    let slideTimer = 0;
+
+    // Skill state
+    let isMistWalk = false;
+    let mistWalkTimer = 0;
+    const mistWalkDuration = 3.5;
+    let mistWalkCooldown = 0;
+
+    // Procedural World & Object Pools
+    let segments = [];
+    const segmentLength = 80;
+    const visibleSegments = 6;
+    let obstacles = [];
+    let collectibles = [];
+    let floatingCoffins = [];
+    let particles;
+
+    // Camera FX
+    let cameraShakeIntensity = 0;
+    let cameraBobTime = 0;
+
+    // Trail Effect
+    let trailParticles = [];
+    const MAX_TRAIL = 20;
+    let prevPlayerX = 0;
+
+    // Materials global cache
+    let materials = {};
+
+    // ==========================================
+    // 2. THREE.JS INITIALIZATION & SYSTEM
+    // ==========================================
+    function initEngine() {
+      scene = new THREE.Scene();
+      scene.background = new THREE.Color(0x050510);
+      scene.fog = new THREE.FogExp2(0x050510, 0.015);
+
+      camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 300);
+      camera.position.set(0, 5, -9);
+
+      renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+      renderer.shadowMap.enabled = true;
+      renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+      container.appendChild(renderer.domElement);
+
+      setupLighting();
+      initMaterials();
+      createPlayer();
+      createBackgroundCoffins();
+      createParticleSystem();
+      createMistSystem();
+
+      window.addEventListener('resize', onWindowResize);
+    }
+
+    function setupLighting() {
+      // Ambient Light (Redup Mistis)
+      const ambientLight = new THREE.AmbientLight(0x334466, 0.8);
+      scene.add(ambientLight);
+
+      // Moonlight (Directional Light Utama)
+      const moonLight = new THREE.DirectionalLight(0x7799bb, 1.2);
+      moonLight.position.set(-20, 40, -20);
+      moonLight.castShadow = true;
+      moonLight.shadow.mapSize.width = 1024;
+      moonLight.shadow.mapSize.height = 1024;
+      moonLight.shadow.camera.near = 0.5;
+      moonLight.shadow.camera.far = 150;
+      scene.add(moonLight);
+
+      // Bulan 3D di Langit
+      const moonGeo = new THREE.SphereGeometry(12, 32, 32);
+      const moonMat = new THREE.MeshBasicMaterial({ color: 0xe0e7ff });
+      const moon = new THREE.Mesh(moonGeo, moonMat);
+      moon.position.set(-40, 80, 200);
+      scene.add(moon);
+    }
+
+    function initMaterials() {
+      materials.ground = new THREE.MeshStandardMaterial({ color: 0x050814, roughness: 0.9, metalness: 0.1 });
+      materials.laneMarker = new THREE.MeshBasicMaterial({ color: 0x38bdf8, transparent: true, opacity: 0.5 });
+      materials.tombstone = new THREE.MeshStandardMaterial({ color: 0x475569, roughness: 0.7 });
+      materials.wood = new THREE.MeshStandardMaterial({ color: 0x451a03, roughness: 0.8 });
+      materials.obstacleWood = new THREE.MeshStandardMaterial({ color: 0x3d1010, roughness: 0.8, emissive: 0x770000, emissiveIntensity: 0.4 });
+      materials.leaf = new THREE.MeshStandardMaterial({ color: 0x064e3b, roughness: 0.6 });
+      
+      // Collectibles & Skills Materials
+      materials.mushroom = new THREE.MeshStandardMaterial({ color: 0x9333ea, emissive: 0x6b21a8, roughness: 0.2 });
+      materials.spirit = new THREE.MeshStandardMaterial({ color: 0x38bdf8, emissive: 0x0284c7, roughness: 0.1 });
+      materials.coffin = new THREE.MeshStandardMaterial({ color: 0x1f2937, roughness: 0.5 });
+      materials.player = new THREE.MeshStandardMaterial({ color: 0xe2e8f0, roughness: 0.4 });
+    }
+
+    // ==========================================
+    // 3. MODEL CREATION (PROCEDURAL GEOMETRY)
+    // ==========================================
+    function createWizardMesh() {
+      const wizardGroup = new THREE.Group();
+
+      // === MATERIAL ===
+      const robeMat    = new THREE.MeshStandardMaterial({ color: 0x7c3aed, roughness: 0.7 });
+      const robe2Mat   = new THREE.MeshStandardMaterial({ color: 0x4c1d95, roughness: 0.8 });
+      const capeMat    = new THREE.MeshStandardMaterial({ color: 0x5b21b6, roughness: 0.6, side: THREE.DoubleSide });
+      const skinMat    = new THREE.MeshStandardMaterial({ color: 0xfde68a, roughness: 0.5 });
+      const hatMat     = new THREE.MeshStandardMaterial({ color: 0x1e1b4b, roughness: 0.7 });
+      const hatBand    = new THREE.MeshStandardMaterial({ color: 0xfbbf24, roughness: 0.4, emissive: 0x7a5200, emissiveIntensity: 0.3 });
+      const broomMat   = new THREE.MeshStandardMaterial({ color: 0x92400e, roughness: 0.9 });
+      const bristleMat = new THREE.MeshStandardMaterial({ color: 0x78350f, roughness: 1.0 });
+      const eyeMat     = new THREE.MeshBasicMaterial({ color: 0x1e0040 });
+      const beardMat   = new THREE.MeshStandardMaterial({ color: 0xe5e7eb, roughness: 0.8 });
+
+      // === SAPU LIDI (BROOM) — Miring ke depan sedikit ===
+      const handleGeo = new THREE.CylinderGeometry(0.05, 0.05, 3.8, 8);
+      const handle = new THREE.Mesh(handleGeo, broomMat);
+      handle.rotation.x = Math.PI / 2;
+      handle.rotation.z = 0.12; // Sedikit miring
+      handle.position.set(0, 0.05, 0.1);
+      wizardGroup.add(handle);
+
+      // Ijuk sapu (mekar ke belakang)
+      for (let i = 0; i < 10; i++) {
+        const angle = (i / 10) * Math.PI * 2;
+        const bGeo = new THREE.CylinderGeometry(0.018, 0.003, 1.1, 3);
+        const bristle = new THREE.Mesh(bGeo, bristleMat);
+        bristle.position.set(
+          Math.cos(angle) * 0.22, Math.sin(angle) * 0.22, 1.6
+        );
+        bristle.rotation.x = 0.35;
+        bristle.rotation.z = angle * 0.1;
+        wizardGroup.add(bristle);
+      }
+      // Ikatan ijuk
+      const bindGeo = new THREE.CylinderGeometry(0.28, 0.22, 0.22, 8);
+      const bind = new THREE.Mesh(bindGeo, hatBand);
+      bind.rotation.x = Math.PI / 2;
+      bind.position.set(0, 0.05, 1.1);
+      wizardGroup.add(bind);
+
+      // === TUBUH UTAMA — Group terpisah agar bisa animasi ===
+      const bodyGroup = new THREE.Group();
+      bodyGroup.name = 'wizBody';
+      // Condong ke depan (pose mengendarai sapu)
+      bodyGroup.rotation.x = -0.55;
+      bodyGroup.position.set(0, 0.55, -0.15);
+
+      // Jubah atas (badan)
+      const bodyGeo = new THREE.CylinderGeometry(0.24, 0.32, 0.75, 9);
+      const body = new THREE.Mesh(bodyGeo, robeMat);
+      body.castShadow = true;
+      bodyGroup.add(body);
+
+      // Jubah bawah (rok)
+      const skirtGeo = new THREE.CylinderGeometry(0.32, 0.5, 0.4, 9);
+      const skirt = new THREE.Mesh(skirtGeo, robe2Mat);
+      skirt.position.y = -0.57;
+      bodyGroup.add(skirt);
+
+      // Cape / Jubah berkibar (Flat plane di belakang badan)
+      const capeGeo = new THREE.PlaneGeometry(0.7, 0.9);
+      const cape = new THREE.Mesh(capeGeo, capeMat);
+      cape.name = 'cape';
+      cape.position.set(0, -0.1, 0.38);
+      cape.rotation.x = 0.4;
+      bodyGroup.add(cape);
+
+      // Kepala
+      const headGeo = new THREE.SphereGeometry(0.24, 10, 10);
+      const head = new THREE.Mesh(headGeo, skinMat);
+      head.name = 'head';
+      head.position.set(0, 0.6, 0);
+      head.castShadow = true;
+      bodyGroup.add(head);
+
+      // Mata
+      const eyeGeo = new THREE.SphereGeometry(0.04, 6, 6);
+      const eyeL = new THREE.Mesh(eyeGeo, eyeMat);
+      eyeL.position.set(-0.09, 0.62, -0.22);
+      bodyGroup.add(eyeL);
+      const eyeR = new THREE.Mesh(eyeGeo, eyeMat);
+      eyeR.position.set(0.09, 0.62, -0.22);
+      bodyGroup.add(eyeR);
+
+      // Jenggot lancip
+      const beardGeo = new THREE.ConeGeometry(0.12, 0.3, 7);
+      const beard = new THREE.Mesh(beardGeo, beardMat);
+      beard.position.set(0, 0.36, -0.2);
+      beard.rotation.x = 0.5;
+      bodyGroup.add(beard);
+
+      // Topi — Brim
+      const brimGeo = new THREE.CylinderGeometry(0.5, 0.5, 0.07, 12);
+      const brim = new THREE.Mesh(brimGeo, hatMat);
+      brim.position.set(0, 0.87, 0);
+      bodyGroup.add(brim);
+      // Pita topi
+      const bandGeo = new THREE.CylinderGeometry(0.27, 0.27, 0.09, 12);
+      const band = new THREE.Mesh(bandGeo, hatBand);
+      band.position.set(0, 0.97, 0);
+      bodyGroup.add(band);
+      // Kerucut topi — Bisa animasi tilt
+      const hatCone = new THREE.Group();
+      hatCone.name = 'hatCone';
+      const coneGeo = new THREE.ConeGeometry(0.26, 0.9, 10);
+      const cone = new THREE.Mesh(coneGeo, hatMat);
+      cone.position.y = 0.45;
+      hatCone.add(cone);
+      hatCone.position.set(0, 1.0, 0);
+      bodyGroup.add(hatCone);
+
+      wizardGroup.add(bodyGroup);
+
+      // === LENGAN KIRI & KANAN (Animasi bergerak) ===
+      const armGeo = new THREE.CylinderGeometry(0.07, 0.05, 0.6, 6);
+
+      const armLGroup = new THREE.Group();
+      armLGroup.name = 'armL';
+      armLGroup.position.set(-0.35, 0.55, -0.2);
+      const armLMesh = new THREE.Mesh(armGeo, robeMat);
+      armLMesh.rotation.z = -1.3;  // Terentang pegang sapu
+      armLMesh.rotation.x = 0.3;
+      armLGroup.add(armLMesh);
+      // Tangan kiri
+      const handLGeo = new THREE.SphereGeometry(0.07, 6, 6);
+      const handL = new THREE.Mesh(handLGeo, skinMat);
+      handL.position.set(-0.28, -0.05, 0.2);
+      armLGroup.add(handL);
+      wizardGroup.add(armLGroup);
+
+      const armRGroup = new THREE.Group();
+      armRGroup.name = 'armR';
+      armRGroup.position.set(0.35, 0.55, -0.2);
+      const armRMesh = new THREE.Mesh(armGeo, robeMat);
+      armRMesh.rotation.z = 1.3;  // Terentang pegang sapu
+      armRMesh.rotation.x = 0.3;
+      armRGroup.add(armRMesh);
+      // Tangan kanan
+      const handRGeo = new THREE.SphereGeometry(0.07, 6, 6);
+      const handR = new THREE.Mesh(handRGeo, skinMat);
+      handR.position.set(0.28, -0.05, 0.2);
+      armRGroup.add(handR);
+      wizardGroup.add(armRGroup);
+
+      return wizardGroup;
+    }
+
+    function createPlayer() {
+      playerGroup = new THREE.Group();
+
+      playerMesh = createWizardMesh();
+      playerMesh.position.y = 0.5;
+      playerMesh.rotation.y = Math.PI; // Hadap ke depan (searah lari)
+      playerGroup.add(playerMesh);
+
+      // Aura Cahaya Ungu/Hijau di Bawah Sapu (Melayang)
+      const hoverLight = new THREE.PointLight(0xbb33ff, 1.5, 4);
+      hoverLight.position.set(0, -0.3, 0);
+      playerMesh.add(hoverLight);
+
+      // Aura Mist Walk Glow (Hidden initially)
+      const auraGeo = new THREE.SphereGeometry(1.6, 16, 16);
+      const auraMat = new THREE.MeshBasicMaterial({ color: 0x38bdf8, transparent: true, opacity: 0.3, wireframe: true });
+      const aura = new THREE.Mesh(auraGeo, auraMat);
+      aura.name = "aura";
+      aura.visible = false;
+      playerGroup.add(aura);
+
+      playerGroup.position.set(0, 0, 0);
+      scene.add(playerGroup);
+    }
+
+    function createCoffinMesh() {
+      // Obstacle tetap berbentuk keranda (bukan player)
+      const coffinGroup = new THREE.Group();
+      const metalMat = new THREE.MeshStandardMaterial({ color: 0x334155, metalness: 0.6, roughness: 0.5, emissive: 0x111122 });
+      const darkMat = new THREE.MeshStandardMaterial({ color: 0x0f172a, roughness: 0.9 });
+
+      const baseGeo = new THREE.BoxGeometry(1.2, 0.12, 2.6);
+      const baseMesh = new THREE.Mesh(baseGeo, darkMat);
+      baseMesh.castShadow = true;
+      coffinGroup.add(baseMesh);
+
+      const frameGeo = new THREE.BoxGeometry(1.3, 0.14, 2.7);
+      coffinGroup.add(new THREE.Mesh(frameGeo, metalMat));
+
+      const poleGeo = new THREE.CylinderGeometry(0.05, 0.05, 4.2, 8);
+      const poleL = new THREE.Mesh(poleGeo, metalMat);
+      poleL.rotation.x = Math.PI / 2; poleL.position.set(-0.65, 0, 0);
+      coffinGroup.add(poleL);
+      const poleR = new THREE.Mesh(poleGeo, metalMat);
+      poleR.rotation.x = Math.PI / 2; poleR.position.set(0.65, 0, 0);
+      coffinGroup.add(poleR);
+
+      const lampGeo = new THREE.SphereGeometry(0.18, 8, 8);
+      const lampMat = new THREE.MeshBasicMaterial({ color: 0xff4444 });
+      const lamp = new THREE.Mesh(lampGeo, lampMat);
+      lamp.position.set(0, 0.2, 1.1);
+      coffinGroup.add(lamp);
+
+      return coffinGroup;
+    }
+
+    function createBackgroundCoffins() {
+      for (let i = 0; i < 4; i++) {
+        const coffin = createCoffinMesh();
+        coffin.position.set(
+          (Math.random() - 0.5) * 40,
+          10 + Math.random() * 15,
+          30 + i * 40
+        );
+        coffin.scale.set(0.8, 0.8, 0.8);
+        scene.add(coffin);
+        floatingCoffins.push({
+          mesh: coffin,
+          speedY: 0.5 + Math.random() * 0.5,
+          offsetY: Math.random() * Math.PI * 2
+        });
+      }
+    }
+
+    function createTree() {
+      const tree = new THREE.Group();
+      const trunkGeo = new THREE.CylinderGeometry(0.3, 0.6, 4, 7);
+      const trunk = new THREE.Mesh(trunkGeo, materials.wood);
+      trunk.position.y = 2;
+      trunk.castShadow = true;
+      tree.add(trunk);
+
+      const foliageGeo = new THREE.DodecahedronGeometry(2);
+      const foliage = new THREE.Mesh(foliageGeo, materials.leaf);
+      foliage.position.y = 4.5;
+      foliage.castShadow = true;
+      tree.add(foliage);
+
+      return tree;
+    }
+
+    function createTombstone() {
+      const group = new THREE.Group();
+      const geo = new THREE.BoxGeometry(0.8, 1.4, 0.3);
+      const mesh = new THREE.Mesh(geo, materials.tombstone);
+      mesh.position.y = 0.7;
+      mesh.rotation.y = (Math.random() - 0.5) * 0.4;
+      mesh.castShadow = true;
+      group.add(mesh);
+      return group;
+    }
+
+    function createParticleSystem() {
+      const count = 350;
+      const geometry = new THREE.BufferGeometry();
+      const positions = new Float32Array(count * 3);
+
+      for (let i = 0; i < count * 3; i += 3) {
+        positions[i] = (Math.random() - 0.5) * 80;
+        positions[i + 1] = Math.random() * 20;
+        positions[i + 2] = (Math.random() - 0.5) * 150;
+      }
+
+      geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+      const material = new THREE.PointsMaterial({
+        color: 0x38bdf8,
+        size: 0.5,
+        transparent: true,
+        opacity: 0.8
+      });
+      particles = new THREE.Points(geometry, material);
+      scene.add(particles);
+    }
+
+    function createMistSystem() {
+      const count = 40; 
+      const geometry = new THREE.BufferGeometry();
+      const positions = new Float32Array(count * 3);
+
+      for (let i = 0; i < count * 3; i += 3) {
+        positions[i] = (Math.random() - 0.5) * 80; 
+        positions[i + 1] = 6 + Math.random() * 4;  // Di atas jalan (Y: 6 sampai 10)
+        positions[i + 2] = (Math.random() - 0.5) * 200; 
+      }
+
+      geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+      
+      // Tekstur awan / kabut gradasi halus (prosedural, tanpa file gambar)
+      const canvas = document.createElement('canvas');
+      canvas.width = 64; canvas.height = 64;
+      const context = canvas.getContext('2d');
+      const gradient = context.createRadialGradient(32, 32, 0, 32, 32, 32);
+      gradient.addColorStop(0, 'rgba(255,255,255,0.1)');
+      gradient.addColorStop(1, 'rgba(255,255,255,0)');
+      context.fillStyle = gradient;
+      context.fillRect(0,0,64,64);
+      const texture = new THREE.CanvasTexture(canvas);
+
+      const material = new THREE.PointsMaterial({
+        color: 0x4b5563, // Warna awan abu-abu / biru gelap
+        size: 50, // Ukuran sangat besar
+        map: texture,
+        transparent: true,
+        depthWrite: false, // Menghindari potongan kotak-kotak saat tumpang tindih
+        opacity: 0.6
+      });
+      
+      const mist = new THREE.Points(geometry, material);
+      scene.add(mist);
+    }
+
+    // ==========================================
+    // 4. WORLD GENERATION & SEGMENTS
+    // ==========================================
+    function createSegment(zPos) {
+      const segment = new THREE.Group();
+      segment.position.z = zPos;
+
+      // Tanah Utama
+      const groundGeo = new THREE.PlaneGeometry(16, segmentLength);
+      const ground = new THREE.Mesh(groundGeo, materials.ground);
+      ground.rotation.x = -Math.PI / 2;
+      ground.receiveShadow = true;
+      segment.add(ground);
+
+      // Atap Kanopi Gelap (Di atas) agar tidak polos
+      const canopyGeo = new THREE.PlaneGeometry(18, segmentLength);
+      const canopyMat = new THREE.MeshBasicMaterial({ color: 0x020204, side: THREE.DoubleSide });
+      const canopy = new THREE.Mesh(canopyGeo, canopyMat);
+      canopy.rotation.x = Math.PI / 2;
+      canopy.position.y = 8;
+      segment.add(canopy);
+
+      // Akar gantung (Hanging Roots) dari kanopi agar terlihat seram & tidak terlalu berat
+      for(let i=0; i<6; i++) {
+        const rootGeo = new THREE.CylinderGeometry(0.04, 0.01, 3 + Math.random()*2, 3);
+        const rootMat = new THREE.MeshBasicMaterial({ color: 0x0a0c10 });
+        const root = new THREE.Mesh(rootGeo, rootMat);
+        root.position.set((Math.random() - 0.5) * 14, 7, (Math.random() - 0.5) * segmentLength);
+        root.rotation.z = (Math.random() - 0.5) * 0.2;
+        segment.add(root);
+      }
+
+      // Pembatas Lane (Garis Visual Glow)
+      for (let lanePos of [-1.75, 1.75]) {
+        const lineGeo = new THREE.PlaneGeometry(0.1, segmentLength);
+        const line = new THREE.Mesh(lineGeo, materials.laneMarker);
+        line.rotation.x = -Math.PI / 2;
+        line.position.set(lanePos, 0.02, 0);
+        segment.add(line);
+      }
+
+      // Lampu kecil di pinggir jalan (Batas Jalan)
+      for (let z = -segmentLength / 2; z < segmentLength / 2; z += 5) {
+        for(let x of [-4.5, 4.5]) {
+            const edgeLampGeo = new THREE.BoxGeometry(0.2, 0.1, 1.0);
+            const edgeLampMat = new THREE.MeshBasicMaterial({ color: 0x0284c7 });
+            const edgeLamp = new THREE.Mesh(edgeLampGeo, edgeLampMat);
+            edgeLamp.position.set(x, 0.05, z);
+            segment.add(edgeLamp);
+        }
+      }
+
+      // Dekorasi Lingkungan Pinggir Lane Kanan-Kiri
+      const SIDE_X = 6.5;
+      for (let z = -segmentLength / 2; z < segmentLength / 2; z += 10) {
+        [-1, 1].forEach((side) => {
+          const posX = side * SIDE_X;
+
+          // A. Tembok Kuburan Tua (Tinggi untuk menutup latar polos)
+          const wallGeo = new THREE.BoxGeometry(0.8, 6, 10);
+          const wallMat = new THREE.MeshStandardMaterial({ color: 0x191924, roughness: 0.9 });
+          const wall = new THREE.Mesh(wallGeo, wallMat);
+          wall.position.set(posX, 3, z);
+          wall.receiveShadow = true;
+          segment.add(wall);
+
+          // B. Pagar Besi Tua di Depan Tembok
+          const fenceGeo = new THREE.BoxGeometry(0.1, 2.5, 9.8);
+          const fenceMat = new THREE.MeshStandardMaterial({ color: 0x050508, metalness: 0.8 });
+          const fence = new THREE.Mesh(fenceGeo, fenceMat);
+          fence.position.set(side * (SIDE_X - 0.5), 1.25, z);
+          segment.add(fence);
+
+          // C. Batu Nisan & Pohon Rapat di Sisi Luar
+          for (let i = -4; i <= 4; i += 3) {
+            if (Math.random() > 0.3) {
+              const tombGeo = new THREE.BoxGeometry(0.8, 1.4, 0.3);
+              const tombMat = new THREE.MeshStandardMaterial({ color: 0x444455 });
+              const tomb = new THREE.Mesh(tombGeo, tombMat);
+              tomb.position.set(side * (SIDE_X - 1.2), 0.7, z + i);
+              tomb.rotation.y = (Math.random() - 0.5) * 0.4;
+              segment.add(tomb);
+            }
+          }
+
+          // D. Lentera Horor di sepanjang tembok (Menggunakan BasicMaterial agar ringan, tanpa PointLight)
+          if (Math.random() > 0.5) {
+            const lampGeo = new THREE.SphereGeometry(0.25, 8, 8);
+            const lampMat = new THREE.MeshBasicMaterial({ color: 0xffaa00 });
+            const lampMesh = new THREE.Mesh(lampGeo, lampMat);
+            lampMesh.position.set(side * (SIDE_X - 0.8), 3.5, z);
+            segment.add(lampMesh);
+          }
+        });
+      }
+
+      scene.add(segment);
+      return segment;
+    }
+
+    function spawnObstaclesAndCollectibles(zPos) {
+      if (zPos < 40) return; // Jangan spawn terlalu dekat dengan spawn point
+
+      const laneIndices = [0, 1, 2];
+      // Acak lane mana yang akan diisi obstacle (maksimal 2 lane agar selalu ada jalan lewat)
+      const obstacleCount = Math.floor(Math.random() * 2) + 1;
+      const shuffledLanes = laneIndices.sort(() => Math.random() - 0.5);
+
+      for (let i = 0; i < obstacleCount; i++) {
+        const lane = shuffledLanes[i];
+        const typeRand = Math.random();
+        let obsMesh, type, box;
+
+        if (typeRand < 0.4) {
+          // Obstacle Rendah (Harus Jump) - Batang Pohon Tumbang
+          type = 'JUMP_OVER';
+          const geo = new THREE.CylinderGeometry(0.5, 0.5, 3.2, 8);
+          obsMesh = new THREE.Mesh(geo, materials.obstacleWood);
+          obsMesh.rotation.z = Math.PI / 2;
+          obsMesh.position.set(LANES[lane], 0.4, zPos);
+          box = new THREE.Box3().setFromCenterAndSize(obsMesh.position, new THREE.Vector3(3.0, 0.8, 0.8));
+
+        } else if (typeRand < 0.7) {
+          // Obstacle Tinggi (Harus Slide) - Gerbang Mistis / Pagar Keranda
+          type = 'SLIDE_UNDER';
+          obsMesh = new THREE.Group();
+          const topGeo = new THREE.BoxGeometry(3.2, 0.6, 0.6);
+          const topMesh = new THREE.Mesh(topGeo, materials.obstacleWood);
+          topMesh.position.set(0, 2.2, 0);
+          obsMesh.add(topMesh);
+
+          const pillarGeo = new THREE.CylinderGeometry(0.2, 0.2, 2.5);
+          const p1 = new THREE.Mesh(pillarGeo, materials.obstacleWood);
+          p1.position.set(-1.4, 1.25, 0);
+          const p2 = new THREE.Mesh(pillarGeo, materials.obstacleWood);
+          p2.position.set(1.4, 1.25, 0);
+          obsMesh.add(p1); obsMesh.add(p2);
+
+          obsMesh.position.set(LANES[lane], 0, zPos);
+          box = new THREE.Box3().setFromCenterAndSize(
+            new THREE.Vector3(LANES[lane], 2.2, zPos),
+            new THREE.Vector3(3.0, 1.0, 0.6)
+          );
+
+        } else {
+          // Obstacle Penuh / Keranda Melayang Rendah (Harus Pindah Lane)
+          type = 'BLOCK';
+          obsMesh = createCoffinMesh();
+          obsMesh.position.set(LANES[lane], 1.0, zPos);
+          box = new THREE.Box3().setFromCenterAndSize(obsMesh.position, new THREE.Vector3(1.6, 1.6, 2.6));
+        }
+
+        obsMesh.castShadow = true;
+        scene.add(obsMesh);
+        obstacles.push({ mesh: obsMesh, box: box, lane: lane, type: type, z: zPos });
+      }
+
+      // Spawn Collectible di lane yang tersisa
+      const freeLane = shuffledLanes[obstacleCount] !== undefined ? shuffledLanes[obstacleCount] : 1;
+      const isSpirit = Math.random() < 0.25; // 25% Energy Spirit, 75% Jamur Ungu
+
+      let itemMesh;
+      if (isSpirit) {
+        // Spirit Biru (Energy)
+        const geo = new THREE.OctahedronGeometry(0.4);
+        itemMesh = new THREE.Mesh(geo, materials.spirit);
+        itemMesh.position.set(LANES[freeLane], 1.2, zPos + (Math.random() * 10 - 5));
+        scene.add(itemMesh);
+        collectibles.push({ mesh: itemMesh, type: 'SPIRIT', z: itemMesh.position.z, lane: freeLane });
+      } else {
+        // Jamur Mistis Ungu — Acak Pola: Lurus, Zigzag, atau Arc 3 Lane
+        const patternRand = Math.random();
+        const baseZ = zPos + (Math.random() * 6 - 3);
+
+        function spawnMushroom(lane, zOffset) {
+          const group = new THREE.Group();
+          const capGeo = new THREE.SphereGeometry(0.4, 8, 8, 0, Math.PI * 2, 0, Math.PI / 2);
+          const cap = new THREE.Mesh(capGeo, materials.mushroom);
+          cap.position.y = 0.3;
+          group.add(cap);
+          const stemGeo = new THREE.CylinderGeometry(0.1, 0.15, 0.4);
+          const stem = new THREE.Mesh(stemGeo, materials.tombstone);
+          stem.position.y = 0.15;
+          group.add(stem);
+          const jamurZ = baseZ + zOffset;
+          const safeLane = Math.max(0, Math.min(2, lane));
+          group.position.set(LANES[safeLane], 0.3, jamurZ);
+          scene.add(group);
+          collectibles.push({ mesh: group, type: 'MUSHROOM', z: jamurZ, lane: safeLane });
+        }
+
+        if (patternRand < 0.35) {
+          // POLA LURUS: Berbaris di satu lane (3-5 jamur)
+          const count = Math.floor(Math.random() * 3) + 3;
+          for (let j = 0; j < count; j++) {
+            spawnMushroom(freeLane, j * 2.8);
+          }
+        } else if (patternRand < 0.7) {
+          // POLA ZIGZAG: Ganti lane kiri-kanan bergantian
+          const zigLanes = [freeLane, freeLane === 1 ? 0 : 1, freeLane, freeLane === 1 ? 2 : 1, freeLane];
+          for (let j = 0; j < zigLanes.length; j++) {
+            spawnMushroom(zigLanes[j], j * 3);
+          }
+        } else {
+          // POLA ARC: Melintas 3 lane — kiri → tengah → kanan → tengah → kiri
+          const arcLanes = [0, 1, 2, 1, 0];
+          for (let j = 0; j < arcLanes.length; j++) {
+            spawnMushroom(arcLanes[j], j * 2.5);
+          }
+        }
+      }
+    }
+
+    function initWorld() {
+      // Clear existing
+      segments.forEach(s => scene.remove(s));
+      obstacles.forEach(o => scene.remove(o.mesh));
+      collectibles.forEach(c => scene.remove(c.mesh));
+      segments = [];
+      obstacles = [];
+      collectibles = [];
+
+      for (let i = 0; i < visibleSegments; i++) {
+        const zPos = i * segmentLength;
+        const seg = createSegment(zPos);
+        segments.push(seg);
+        if (i > 0) spawnObstaclesAndCollectibles(zPos);
+      }
+    }
+
+    function updateWorld(delta) {
+      const moveDistance = speed * delta;
+
+      // Update Segments Position
+      segments.forEach(segment => {
+        segment.position.z -= moveDistance;
+      });
+
+      // Daur Ulang Segment yang lewat di belakang player
+      if (segments[0].position.z < -segmentLength) {
+        const oldSegment = segments.shift();
+        const newZ = segments[segments.length - 1].position.z + segmentLength;
+        oldSegment.position.z = newZ;
+        segments.push(oldSegment);
+
+        // Spawn obstacle baru di segment terdepan
+        spawnObstaclesAndCollectibles(newZ);
+      }
+
+      // Update Obstacles
+      for (let i = obstacles.length - 1; i >= 0; i--) {
+        const obs = obstacles[i];
+        obs.mesh.position.z -= moveDistance;
+        obs.box.setFromCenterAndSize(
+          obs.mesh.position,
+          obs.box.getSize(new THREE.Vector3())
+        );
+
+        if (obs.mesh.position.z < -15) {
+          scene.remove(obs.mesh);
+          obstacles.splice(i, 1);
+        }
+      }
+
+      // Update Collectibles (Animasi Rotasi & Melayang)
+      for (let i = collectibles.length - 1; i >= 0; i--) {
+        const item = collectibles[i];
+        item.mesh.position.z -= moveDistance;
+        item.mesh.rotation.y += delta * 3;
+
+        if (item.mesh.position.z < -15) {
+          scene.remove(item.mesh);
+          collectibles.splice(i, 1);
+        }
+      }
+
+      // Update Keranda Terbang di Background
+      floatingCoffins.forEach(c => {
+        c.mesh.position.y += Math.sin(clock.getElapsedTime() * 2 + c.offsetY) * 0.02;
+        c.mesh.position.z -= moveDistance * 0.3; // Bergerak melayang lebih lambat
+        if (c.mesh.position.z < -30) {
+          c.mesh.position.z = 180 + Math.random() * 40;
+        }
+      });
+    }
+
+    // ==========================================
+    // 5. PLAYER CONTROLLER & SKILLS
+    // ==========================================
+    function updatePlayer(delta) {
+      // Pergerakan Smooth Perpindahan Lane (X)
+      targetX = LANES[currentLane];
+      const dx = targetX - playerGroup.position.x;
+      playerGroup.position.x += dx * 18 * delta;
+
+      // TRAIL EFFECT: Spawn partikel saat bergerak sideways
+      if (Math.abs(dx) > 0.5) {
+        if (trailParticles.length < MAX_TRAIL) {
+          const trailGeo = new THREE.SphereGeometry(0.2, 4, 4);
+          const trailMat = new THREE.MeshBasicMaterial({
+            color: 0x22c55e,
+            transparent: true,
+            opacity: 0.7
+          });
+          const trailMesh = new THREE.Mesh(trailGeo, trailMat);
+          trailMesh.position.set(
+            playerGroup.position.x,
+            playerGroup.position.y + playerMesh.position.y + 0.5,
+            playerGroup.position.z + 1.2
+          );
+          scene.add(trailMesh);
+          trailParticles.push({ mesh: trailMesh, life: 1.0 });
+        }
+      }
+
+      // Update trail particles (fade + shrink)
+      for (let i = trailParticles.length - 1; i >= 0; i--) {
+        const t = trailParticles[i];
+        t.life -= delta * 2.5;
+        t.mesh.material.opacity = Math.max(0, t.life * 0.7);
+        t.mesh.scale.setScalar(t.life);
+        if (t.life <= 0) {
+          scene.remove(t.mesh);
+          trailParticles.splice(i, 1);
+        }
+      }
+
+      // Lompat (Jump & Gravity)
+      const wasJumping = isJumping;
+      if (isJumping) {
+        playerGroup.position.y += jumpVelocity * delta;
+        jumpVelocity += gravity * delta;
+
+        if (playerGroup.position.y <= 0) {
+          playerGroup.position.y = 0;
+          isJumping = false;
+          jumpVelocity = 0;
+          // CAMERA SHAKE saat mendarat!
+          cameraShakeIntensity = 0.3;
+        }
+      }
+
+      // Slide / Crouch Timer
+      if (isSliding) {
+        slideTimer -= delta;
+        if (slideTimer <= 0) {
+          isSliding = false;
+          playerMesh.scale.set(1, 1, 1);
+          playerMesh.position.y = 0.5;
+        }
+      } else {
+        // Efek Melayang (bobbing)
+        playerMesh.position.y = 0.5 + Math.sin(Date.now() * 0.005) * 0.1;
+      }
+
+      // === ANIMASI WIZARD (bikin hidup, bukan patung) ===
+      const t = Date.now() * 0.002;
+      const speedFactor = speed / 35;
+
+      // 1. Badan condong ke depan saat kencang, balik saat lompat
+      const wizBody = playerMesh.getObjectByName('wizBody');
+      if (wizBody) {
+        const tiltForward = isJumping ? -0.2 : -0.55 - speedFactor * 0.08;
+        wizBody.rotation.x += (tiltForward - wizBody.rotation.x) * 0.15;
+        // Sway kiri-kanan kecil saat berlari
+        wizBody.rotation.z = Math.sin(t * 1.5) * 0.04;
+      }
+
+      // 2. Topi bergoyang (tilt berlawanan arah)
+      const hatCone = playerMesh.getObjectByName('hatCone');
+      if (hatCone) {
+        hatCone.rotation.z = Math.sin(t * 1.5 + 0.5) * 0.1;
+        hatCone.rotation.x = isJumping ? 0.2 : -Math.abs(Math.sin(t)) * 0.05;
+      }
+
+      // 3. Lengan mengepak / bergetar saat berlari
+      const armL = playerMesh.getObjectByName('armL');
+      const armR = playerMesh.getObjectByName('armR');
+      if (armL) armL.rotation.z = -1.3 + Math.sin(t * 3) * 0.15;
+      if (armR) armR.rotation.z =  1.3 - Math.sin(t * 3) * 0.15;
+
+      // 4. Cape berkibar di belakang
+      const cape = playerMesh.getObjectByName('cape');
+      if (cape) {
+        cape.rotation.x = 0.4 + Math.sin(t * 2) * 0.15;
+        cape.scale.y = 1.0 + Math.sin(t * 2.5) * 0.1;
+      }
+
+      // 5. Tilt kiri/kanan saat pindah lane
+      const laneOffset = (LANES[currentLane] - playerGroup.position.x);
+      playerMesh.rotation.z = laneOffset * 0.06;
+
+      // Mist Walk Skill Handler
+      if (isMistWalk) {
+        mistWalkTimer -= delta;
+        if (mistWalkTimer <= 0) {
+          deactivateMistWalk();
+        }
+      }
+
+      if (mistWalkCooldown > 0) {
+        mistWalkCooldown -= delta;
+      }
+    }
+
+    function moveLeft() {
+      if (currentLane > 0) currentLane--;
+    }
+
+    function moveRight() {
+      if (currentLane < 2) currentLane++;
+    }
+
+    function jump() {
+      if (!isJumping && !isSliding) {
+        isJumping = true;
+        jumpVelocity = 16;
+      }
+    }
+
+    function slide() {
+      if (!isSliding && !isJumping) {
+        isSliding = true;
+        slideTimer = 0.8;
+        playerMesh.scale.set(1, 0.4, 1);
+        playerMesh.position.y = 0.2;
+      }
+    }
+
+    function activateMistWalk() {
+      if (energy >= 50 && !isMistWalk) {
+        energy -= 50;
+        isMistWalk = true;
+        mistWalkTimer = mistWalkDuration;
+        
+        // Visual Transformation
+        playerMesh.traverse(function(child) {
+          if (child.isMesh) {
+            child.material.transparent = true;
+            child.material.opacity = 0.4;
+          }
+        });
+        const aura = playerGroup.getObjectByName("aura");
+        if (aura) aura.visible = true;
+
+        updateHUD();
+      }
+    }
+
+    function deactivateMistWalk() {
+      isMistWalk = false;
+      playerMesh.traverse(function(child) {
+        if (child.isMesh) {
+          child.material.opacity = 1.0;
+          child.material.transparent = false;
+        }
+      });
+      const aura = playerGroup.getObjectByName("aura");
+      if (aura) aura.visible = false;
+    }
+
+    function triggerHitFlash() {
+      // Camera Shake Intens
+      cameraShakeIntensity = 0.8;
+
+      // Flash Merah: nyalakan vignette.danger lalu matikan
+      const vignette = document.getElementById('vignette');
+      vignette.classList.add('danger');
+      setTimeout(() => {
+        vignette.classList.remove('danger');
+      }, 350);
+    }
+
+    // ==========================================
+    // 6. COLLISION & LOGIC
+    // ==========================================
+    function checkCollisions() {
+      const playerBox = new THREE.Box3().setFromCenterAndSize(
+        new THREE.Vector3(playerGroup.position.x, playerGroup.position.y + (isSliding ? 0.4 : 1.0), playerGroup.position.z),
+        new THREE.Vector3(0.8, isSliding ? 0.7 : 1.8, 0.8)
+      );
+
+      // 1. Collision Check Obstacles
+      if (!isMistWalk) {
+        for (let obs of obstacles) {
+          if (obs.box.intersectsBox(playerBox)) {
+            triggerHitFlash(); // Flash merah + shake dulu
+            triggerGameOver();
+            return;
+          }
+        }
+      }
+
+      // 2. Collision Check Collectibles
+      for (let i = collectibles.length - 1; i >= 0; i--) {
+        const item = collectibles[i];
+        const itemBox = new THREE.Box3().setFromObject(item.mesh);
+
+        if (playerBox.intersectsBox(itemBox)) {
+          if (item.type === 'MUSHROOM') {
+            score += 10;
+          } else if (item.type === 'SPIRIT') {
+            energy = Math.min(100, energy + 20);
+          }
+
+          // Effek Hilang
+          scene.remove(item.mesh);
+          collectibles.splice(i, 1);
+          updateHUD();
+        }
+      }
+    }
+
+    // ==========================================
+    // 7. INPUT HANDLER (KEYBOARD & TOUCH)
+    // ==========================================
+    function setupInputs() {
+      document.addEventListener('keydown', (e) => {
+        if (currentState !== GAME_STATES.PLAYING) {
+          if ((e.key === 'p' || e.key === 'P' || e.key === 'Escape') && currentState === GAME_STATES.PAUSED) {
+            resumeGame();
+          }
+          return;
+        }
+
+        switch (e.key) {
+          case 'a': case 'A': case 'ArrowLeft': moveLeft(); break;
+          case 'd': case 'D': case 'ArrowRight': moveRight(); break;
+          case 'w': case 'W': case 'ArrowUp': case ' ': jump(); break;
+          case 's': case 'S': case 'ArrowDown': slide(); break;
+          case 'e': case 'E': activateMistWalk(); break;
+          case 'p': case 'P': case 'Escape': pauseGame(); break;
+        }
+      });
+
+      // Virtual Mobile Touch Controls
+      document.getElementById('t-left').addEventListener('touchstart', (e) => { e.preventDefault(); moveLeft(); });
+      document.getElementById('t-right').addEventListener('touchstart', (e) => { e.preventDefault(); moveRight(); });
+      document.getElementById('t-up').addEventListener('touchstart', (e) => { e.preventDefault(); jump(); });
+      document.getElementById('t-down').addEventListener('touchstart', (e) => { e.preventDefault(); slide(); });
+      document.getElementById('t-skill').addEventListener('touchstart', (e) => { e.preventDefault(); activateMistWalk(); });
+    }
+
+    // ==========================================
+    // 8. GAME FLOW & UI MANAGERS
+    // ==========================================
+    function startSplashLoading() {
+      currentState = GAME_STATES.SPLASH;
+      let progress = 0;
+      const progressBar = document.getElementById('progress-bar');
+      const splashScreen = document.getElementById('splash-screen');
+      const mainMenu = document.getElementById('main-menu');
+
+      const interval = setInterval(() => {
+        progress += Math.random() * 15 + 5;
+        if (progress >= 100) {
+          progress = 100;
+          clearInterval(interval);
+          setTimeout(() => {
+            splashScreen.classList.add('hidden');
+            mainMenu.classList.remove('hidden');
+            currentState = GAME_STATES.MENU;
+          }, 400);
+        }
+        progressBar.style.width = progress + '%';
+      }, 150);
+    }
+
+    function startGameplay() {
+      score = 0;
+      distance = 0;
+      energy = 100;
+      speed = baseSpeed;
+      currentLane = 1;
+      playerGroup.position.set(0, 0, 0);
+      deactivateMistWalk();
+
+      initWorld();
+      updateHUD();
+
+      document.getElementById('main-menu').classList.add('hidden');
+      document.getElementById('gameover-screen').classList.add('hidden');
+      document.getElementById('pause-screen').classList.add('hidden');
+      document.getElementById('hud').classList.remove('hidden');
+
+      currentState = GAME_STATES.PLAYING;
+      clock.start();
+    }
+
+    function pauseGame() {
+      currentState = GAME_STATES.PAUSED;
+      document.getElementById('pause-screen').classList.remove('hidden');
+    }
+
+    function resumeGame() {
+      currentState = GAME_STATES.PLAYING;
+      document.getElementById('pause-screen').classList.add('hidden');
+    }
+
+    function triggerGameOver() {
+      currentState = GAME_STATES.GAMEOVER;
+      if (score > bestScore) {
+        bestScore = score;
+        localStorage.setItem('mw_best_score', bestScore);
+      }
+
+      document.getElementById('go-score').innerText = score;
+      document.getElementById('go-best').innerText = bestScore;
+      document.getElementById('go-distance').innerText = Math.floor(distance) + " m";
+
+      document.getElementById('hud').classList.add('hidden');
+      document.getElementById('gameover-screen').classList.remove('hidden');
+    }
+
+    function updateHUD() {
+      document.getElementById('hud-score').innerText = score;
+      document.getElementById('hud-best').innerText = bestScore;
+      document.getElementById('hud-distance').innerText = Math.floor(distance);
+      document.getElementById('energy-fill').style.width = energy + '%';
+
+      const skillTxt = document.getElementById('skill-status');
+      if (isMistWalk) {
+        skillTxt.innerText = "MIST WALK ACTIVE!";
+        skillTxt.style.color = "#a855f7";
+      } else if (energy >= 50) {
+        skillTxt.innerText = "MIST WALK [E]: READY";
+        skillTxt.style.color = "#38bdf8";
+      } else {
+        skillTxt.innerText = "MIST WALK: NEED 50 ENERGY";
+        skillTxt.style.color = "#94a3b8";
+      }
+    }
+
+    function setupUIEvents() {
+      document.getElementById('btn-play').addEventListener('click', startGameplay);
+      document.getElementById('btn-how').addEventListener('click', () => {
+        document.getElementById('main-menu').classList.add('hidden');
+        document.getElementById('how-screen').classList.remove('hidden');
+      });
+      document.getElementById('btn-back').addEventListener('click', () => {
+        document.getElementById('how-screen').classList.add('hidden');
+        document.getElementById('main-menu').classList.remove('hidden');
+      });
+      document.getElementById('btn-resume').addEventListener('click', resumeGame);
+      document.getElementById('btn-pause-menu').addEventListener('click', () => {
+        document.getElementById('pause-screen').classList.add('hidden');
+        document.getElementById('main-menu').classList.remove('hidden');
+        currentState = GAME_STATES.MENU;
+      });
+      document.getElementById('btn-retry').addEventListener('click', startGameplay);
+      document.getElementById('btn-go-menu').addEventListener('click', () => {
+        document.getElementById('gameover-screen').classList.add('hidden');
+        document.getElementById('main-menu').classList.remove('hidden');
+        currentState = GAME_STATES.MENU;
+      });
+    }
+
+    function onWindowResize() {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    }
+
+    // ==========================================
+    // 9. MAIN GAME LOOP
+    // ==========================================
+    function animate() {
+      requestAnimationFrame(animate);
+
+      const delta = Math.min(clock.getDelta(), 0.1);
+
+      if (currentState === GAME_STATES.PLAYING) {
+        // Pertambahan Jarak dan Kecepatan Bertahap
+        distance += speed * delta * 0.2;
+        score += Math.floor(speed * delta * 0.1);
+        speed = Math.min(maxSpeed, speed + delta * 0.15);
+
+        updatePlayer(delta);
+        updateWorld(delta);
+        checkCollisions();
+        updateHUD();
+
+        // Third-Person Camera Smooth Follow
+        camera.position.x += (playerGroup.position.x * 0.6 - camera.position.x) * 5 * delta;
+
+        // CAMERA BOBBING: naik-turun halus saat berlari
+        cameraBobTime += delta * speed * 0.08;
+        const bob = Math.sin(cameraBobTime) * 0.06;
+
+        // CAMERA SHAKE: decay setelah landing
+        let shakeX = 0, shakeY = 0;
+        if (cameraShakeIntensity > 0) {
+          shakeX = (Math.random() - 0.5) * cameraShakeIntensity;
+          shakeY = (Math.random() - 0.5) * cameraShakeIntensity;
+          cameraShakeIntensity = Math.max(0, cameraShakeIntensity - delta * 4);
+        }
+
+        camera.position.y = 4.5 + playerGroup.position.y * 0.3 + bob + shakeY;
+        camera.position.x += shakeX;
+        camera.lookAt(playerGroup.position.x * 0.3, playerGroup.position.y + 1.2, playerGroup.position.z + 10);
+      } else {
+        // Rotasi Kamera Santai di Main Menu / Splash Screen
+        const time = Date.now() * 0.0005;
+        camera.position.x = Math.sin(time) * 4;
+        camera.lookAt(0, 1, 10);
+      }
+
+      renderer.render(scene, camera);
+    }
+
+    // ==========================================
+    // 10. INITIALIZATION ENTRY POINT
+    // ==========================================
+    window.onload = () => {
+      initEngine();
+      setupInputs();
+      setupUIEvents();
+      startSplashLoading();
+      animate();
+    };
+  </script>
+</body>
+</html>
