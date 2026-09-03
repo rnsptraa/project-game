@@ -101,6 +101,19 @@
       transform: scale(1.05);
     }
 
+    .char-card {
+      background: rgba(255, 255, 255, 0.05);
+      border: 2px solid #475569;
+      padding: 15px;
+      border-radius: 10px;
+      cursor: pointer;
+      flex: 1;
+      transition: all 0.2s ease;
+      text-align: center;
+    }
+    .char-card:hover { background: rgba(255, 255, 255, 0.1); }
+    .char-card.active { border-color: #a855f7; background: rgba(168, 85, 247, 0.2); transform: scale(1.05); }
+
     /* SPLASH SCREEN */
     #splash-screen {
       background: radial-gradient(circle at center, #1e1b4b 0%, #020617 100%);
@@ -270,7 +283,29 @@
       <h1>MIST WALKER</h1>
       <p style="color: #c084fc; margin-bottom: 30px;">Endless Runner Mistis Indonesia</p>
       <button class="btn" id="btn-play">PLAY</button>
+      <button class="btn" id="btn-chars">CHARACTERS</button>
       <button class="btn" id="btn-how">HOW TO PLAY</button>
+    </div>
+
+    <div id="char-screen" class="screen hidden">
+      <div class="dialog-box" style="text-align: center; max-width: 600px;">
+        <h2 style="color: #a855f7; margin-bottom: 20px;">PILIH PENYIHIR</h2>
+        <div style="display: flex; justify-content: center; gap: 15px; margin-bottom: 20px;">
+          <div class="char-card active" data-char="0">
+             <h3 style="color: #c084fc;">AMETHYST</h3>
+             <p style="font-size:0.8rem; margin:0;">Penyihir Ungu</p>
+          </div>
+          <div class="char-card" data-char="1">
+             <h3 style="color: #ef4444;">CRIMSON</h3>
+             <p style="font-size:0.8rem; margin:0;">Penyihir Api</p>
+          </div>
+          <div class="char-card" data-char="2">
+             <h3 style="color: #10b981;">EMERALD</h3>
+             <p style="font-size:0.8rem; margin:0;">Penyihir Hutan</p>
+          </div>
+        </div>
+        <button class="btn" id="btn-char-back">BACK</button>
+      </div>
     </div>
 
     <div id="how-screen" class="screen hidden">
@@ -359,12 +394,13 @@
     let distance = 0;
     let bestScore = parseInt(localStorage.getItem('mw_best_score') || '0');
     let energy = 100;
-    let speed = 25;
-    const baseSpeed = 25;
-    const maxSpeed = 65;
+    let speed = 30;
+    const baseSpeed = 30;
+    const maxSpeed = 80;
 
     // Player state
     let playerGroup, playerMesh;
+    let selectedCharIndex = 0;
     let currentLane = 1; // 0: Kiri, 1: Tengah, 2: Kanan
     let targetX = 0;
     let playerY = 0;
@@ -470,47 +506,58 @@
     // ==========================================
     // 3. MODEL CREATION (PROCEDURAL GEOMETRY)
     // ==========================================
-    function createWizardMesh() {
+    function createWizardMesh(type = 0) {
+      const colors = [
+        { robe: 0x7c3aed, robe2: 0x4c1d95, cape: 0x5b21b6, hat: 0x1e1b4b, band: 0xfbbf24, beard: 0xe5e7eb, skin: 0xfde68a }, // Amethyst
+        { robe: 0xef4444, robe2: 0xb91c1c, cape: 0x991b1b, hat: 0x450a0a, band: 0xf97316, beard: 0xfca5a5, skin: 0xffedd5 }, // Crimson
+        { robe: 0x10b981, robe2: 0x047857, cape: 0x065f46, hat: 0x064e3b, band: 0xa3e635, beard: 0xd1fae5, skin: 0xecfccb }  // Emerald
+      ];
+      const c = colors[type];
+
       const wizardGroup = new THREE.Group();
 
       // === MATERIAL ===
-      const robeMat    = new THREE.MeshStandardMaterial({ color: 0x7c3aed, roughness: 0.7 });
-      const robe2Mat   = new THREE.MeshStandardMaterial({ color: 0x4c1d95, roughness: 0.8 });
-      const capeMat    = new THREE.MeshStandardMaterial({ color: 0x5b21b6, roughness: 0.6, side: THREE.DoubleSide });
-      const skinMat    = new THREE.MeshStandardMaterial({ color: 0xfde68a, roughness: 0.5 });
-      const hatMat     = new THREE.MeshStandardMaterial({ color: 0x1e1b4b, roughness: 0.7 });
-      const hatBand    = new THREE.MeshStandardMaterial({ color: 0xfbbf24, roughness: 0.4, emissive: 0x7a5200, emissiveIntensity: 0.3 });
+      const robeMat    = new THREE.MeshStandardMaterial({ color: c.robe, roughness: 0.7 });
+      const robe2Mat   = new THREE.MeshStandardMaterial({ color: c.robe2, roughness: 0.8 });
+      const capeMat    = new THREE.MeshStandardMaterial({ color: c.cape, roughness: 0.6, side: THREE.DoubleSide });
+      const skinMat    = new THREE.MeshStandardMaterial({ color: c.skin, roughness: 0.5 });
+      const hatMat     = new THREE.MeshStandardMaterial({ color: c.hat, roughness: 0.7 });
+      const hatBand    = new THREE.MeshStandardMaterial({ color: c.band, roughness: 0.4, emissive: c.band, emissiveIntensity: 0.3 });
       const broomMat   = new THREE.MeshStandardMaterial({ color: 0x92400e, roughness: 0.9 });
       const bristleMat = new THREE.MeshStandardMaterial({ color: 0x78350f, roughness: 1.0 });
       const eyeMat     = new THREE.MeshBasicMaterial({ color: 0x1e0040 });
-      const beardMat   = new THREE.MeshStandardMaterial({ color: 0xe5e7eb, roughness: 0.8 });
+      const beardMat   = new THREE.MeshStandardMaterial({ color: c.beard, roughness: 0.8 });
 
-      // === SAPU LIDI (BROOM) — Miring ke depan sedikit ===
+      // === SAPU LIDI (BROOM) ===
       const handleGeo = new THREE.CylinderGeometry(0.05, 0.05, 3.8, 8);
       const handle = new THREE.Mesh(handleGeo, broomMat);
       handle.rotation.x = Math.PI / 2;
-      handle.rotation.z = 0.12; // Sedikit miring
+      handle.rotation.z = 0.12;
       handle.position.set(0, 0.05, 0.1);
       wizardGroup.add(handle);
 
-      // Ijuk sapu (mekar ke belakang)
+      // Ijuk sapu (Broom Tail - Animasi)
+      const broomTail = new THREE.Group();
+      broomTail.name = 'broomTail';
+      broomTail.position.set(0, 0.05, 1.1); // Pivot point
+
       for (let i = 0; i < 10; i++) {
         const angle = (i / 10) * Math.PI * 2;
         const bGeo = new THREE.CylinderGeometry(0.018, 0.003, 1.1, 3);
         const bristle = new THREE.Mesh(bGeo, bristleMat);
         bristle.position.set(
-          Math.cos(angle) * 0.22, Math.sin(angle) * 0.22, 1.6
+          Math.cos(angle) * 0.22, Math.sin(angle) * 0.22, 0.5
         );
         bristle.rotation.x = 0.35;
         bristle.rotation.z = angle * 0.1;
-        wizardGroup.add(bristle);
+        broomTail.add(bristle);
       }
       // Ikatan ijuk
       const bindGeo = new THREE.CylinderGeometry(0.28, 0.22, 0.22, 8);
       const bind = new THREE.Mesh(bindGeo, hatBand);
       bind.rotation.x = Math.PI / 2;
-      bind.position.set(0, 0.05, 1.1);
-      wizardGroup.add(bind);
+      broomTail.add(bind);
+      wizardGroup.add(broomTail);
 
       // === TUBUH UTAMA — Group terpisah agar bisa animasi ===
       const bodyGroup = new THREE.Group();
@@ -620,9 +667,10 @@
     }
 
     function createPlayer() {
+      if (playerGroup) scene.remove(playerGroup);
+      
       playerGroup = new THREE.Group();
-
-      playerMesh = createWizardMesh();
+      playerMesh = createWizardMesh(selectedCharIndex);
       playerMesh.position.y = 0.5;
       playerMesh.rotation.y = Math.PI; // Hadap ke depan (searah lari)
       playerGroup.add(playerMesh);
@@ -633,11 +681,25 @@
       playerMesh.add(hoverLight);
 
       // Aura Mist Walk Glow (Hidden initially)
-      const auraGeo = new THREE.SphereGeometry(1.6, 16, 16);
-      const auraMat = new THREE.MeshBasicMaterial({ color: 0x38bdf8, transparent: true, opacity: 0.3, wireframe: true });
-      const aura = new THREE.Mesh(auraGeo, auraMat);
+      // Aura Mist Walk Glow (Awan hijau transparan)
+      const aura = new THREE.Group();
       aura.name = "aura";
       aura.visible = false;
+      const cloudMat = new THREE.MeshBasicMaterial({ color: 0x22c55e, transparent: true, opacity: 0.5, depthWrite: false });
+      
+      const p1 = new THREE.Mesh(new THREE.SphereGeometry(1.2, 12, 12), cloudMat);
+      p1.position.set(0, 0.4, 0);
+      const p2 = new THREE.Mesh(new THREE.SphereGeometry(0.9, 10, 10), cloudMat);
+      p2.position.set(0.6, 0.2, -0.4);
+      const p3 = new THREE.Mesh(new THREE.SphereGeometry(1.0, 10, 10), cloudMat);
+      p3.position.set(-0.6, 0.5, -0.2);
+      const p4 = new THREE.Mesh(new THREE.SphereGeometry(0.8, 10, 10), cloudMat);
+      p4.position.set(0, 0.7, 0.5);
+      
+      aura.add(p1);
+      aura.add(p2);
+      aura.add(p3);
+      aura.add(p4);
       playerGroup.add(aura);
 
       playerGroup.position.set(0, 0, 0);
@@ -855,23 +917,33 @@
 
           // C. Batu Nisan & Pohon Rapat di Sisi Luar
           for (let i = -4; i <= 4; i += 3) {
-            if (Math.random() > 0.3) {
-              const tombGeo = new THREE.BoxGeometry(0.8, 1.4, 0.3);
-              const tombMat = new THREE.MeshStandardMaterial({ color: 0x444455 });
-              const tomb = new THREE.Mesh(tombGeo, tombMat);
-              tomb.position.set(side * (SIDE_X - 1.2), 0.7, z + i);
-              tomb.rotation.y = (Math.random() - 0.5) * 0.4;
+            if (Math.random() > 0.4) {
+              const tomb = createTombstone();
+              tomb.position.set(side * (SIDE_X - 1.2), 0, z + i);
               segment.add(tomb);
+            } else {
+              const tree = createTree();
+              tree.position.set(side * (SIDE_X + 1.5), 0, z + i);
+              segment.add(tree);
             }
           }
 
-          // D. Lentera Horor di sepanjang tembok (Menggunakan BasicMaterial agar ringan, tanpa PointLight)
+          // D. Lentera Horor di sepanjang tembok (Menggunakan BasicMaterial agar ringan)
           if (Math.random() > 0.5) {
             const lampGeo = new THREE.SphereGeometry(0.25, 8, 8);
             const lampMat = new THREE.MeshBasicMaterial({ color: 0xffaa00 });
             const lampMesh = new THREE.Mesh(lampGeo, lampMat);
             lampMesh.position.set(side * (SIDE_X - 0.8), 3.5, z);
             segment.add(lampMesh);
+          }
+
+          // E. Roh Hutan (Floating Wisps)
+          if (Math.random() > 0.6) {
+            const wispGeo = new THREE.SphereGeometry(0.3, 8, 8);
+            const wispMat = new THREE.MeshBasicMaterial({ color: 0x22c55e, transparent: true, opacity: 0.7 });
+            const wisp = new THREE.Mesh(wispGeo, wispMat);
+            wisp.position.set(side * (SIDE_X - 2.5), 2 + Math.random() * 2, z + (Math.random() * 4 - 2));
+            segment.add(wisp);
           }
         });
       }
@@ -884,8 +956,16 @@
       if (zPos < 40) return; // Jangan spawn terlalu dekat dengan spawn point
 
       const laneIndices = [0, 1, 2];
-      // Acak lane mana yang akan diisi obstacle (maksimal 2 lane agar selalu ada jalan lewat)
-      const obstacleCount = Math.floor(Math.random() * 2) + 1;
+      
+      // Tingkat kesulitan bertambah sesuai jarak
+      let maxObs = 1;
+      if (distance > 100) maxObs = 2;
+      
+      let obstacleCount = Math.floor(Math.random() * maxObs) + 1;
+      
+      if (distance > 300 && Math.random() < 0.6) obstacleCount = 2; // Makin sering muncul 2 rintangan
+      if (distance > 800 && Math.random() < 0.2) obstacleCount = 3; // Block semua, harus pakai Mist Walk!
+      
       const shuffledLanes = laneIndices.sort(() => Math.random() - 0.5);
 
       for (let i = 0; i < obstacleCount; i++) {
@@ -1137,42 +1217,52 @@ for (let i = obstacles.length - 1; i >= 0; i--) {
         playerMesh.position.y = 0.5 + Math.sin(Date.now() * 0.005) * 0.1;
       }
 
-      // === ANIMASI WIZARD (bikin hidup, bukan patung) ===
+      // === ANIMASI WIZARD (Makin luwes/dinamis) ===
       const t = Date.now() * 0.002;
       const speedFactor = speed / 35;
+      const laneOffset = (LANES[currentLane] - playerGroup.position.x);
+
+      // Sway seluruh mesh condong ke arah gerak (sideways lean)
+      playerMesh.rotation.z = laneOffset * 0.1;
+      // Sedikit rotasi body ke arah gerak (yaw)
+      playerMesh.rotation.y = Math.PI + (laneOffset * 0.05);
 
       // 1. Badan condong ke depan saat kencang, balik saat lompat
       const wizBody = playerMesh.getObjectByName('wizBody');
       if (wizBody) {
         const tiltForward = isJumping ? -0.2 : -0.55 - speedFactor * 0.08;
-        wizBody.rotation.x += (tiltForward - wizBody.rotation.x) * 0.15;
+        wizBody.rotation.x += (tiltForward - wizBody.rotation.x) * 0.2;
         // Sway kiri-kanan kecil saat berlari
-        wizBody.rotation.z = Math.sin(t * 1.5) * 0.04;
+        wizBody.rotation.z = Math.sin(t * 1.5) * 0.05;
       }
 
-      // 2. Topi bergoyang (tilt berlawanan arah)
+      // 2. Ijuk Sapu Mengayun (Broom Tail Wag)
+      const broomTail = playerMesh.getObjectByName('broomTail');
+      if (broomTail) {
+        // Ayun berlawanan dengan lean/gerak X
+        broomTail.rotation.y = -laneOffset * 0.3 + Math.sin(t * 3) * 0.1;
+        broomTail.rotation.x = Math.sin(t * 2) * 0.1;
+      }
+
+      // 3. Topi bergoyang (tilt berlawanan arah)
       const hatCone = playerMesh.getObjectByName('hatCone');
       if (hatCone) {
-        hatCone.rotation.z = Math.sin(t * 1.5 + 0.5) * 0.1;
+        hatCone.rotation.z = Math.sin(t * 1.5 + 0.5) * 0.15 - (laneOffset * 0.1);
         hatCone.rotation.x = isJumping ? 0.2 : -Math.abs(Math.sin(t)) * 0.05;
       }
 
-      // 3. Lengan mengepak / bergetar saat berlari
+      // 4. Lengan mengepak / bergetar saat berlari
       const armL = playerMesh.getObjectByName('armL');
       const armR = playerMesh.getObjectByName('armR');
-      if (armL) armL.rotation.z = -1.3 + Math.sin(t * 3) * 0.15;
-      if (armR) armR.rotation.z =  1.3 - Math.sin(t * 3) * 0.15;
+      if (armL) armL.rotation.z = -1.3 + Math.sin(t * 4) * 0.2;
+      if (armR) armR.rotation.z =  1.3 - Math.sin(t * 4) * 0.2;
 
-      // 4. Cape berkibar di belakang
+      // 5. Cape berkibar di belakang
       const cape = playerMesh.getObjectByName('cape');
       if (cape) {
-        cape.rotation.x = 0.4 + Math.sin(t * 2) * 0.15;
-        cape.scale.y = 1.0 + Math.sin(t * 2.5) * 0.1;
+        cape.rotation.x = 0.4 + Math.sin(t * 2) * 0.2;
+        cape.scale.y = 1.0 + Math.sin(t * 2.5) * 0.15;
       }
-
-      // 5. Tilt kiri/kanan saat pindah lane
-      const laneOffset = (LANES[currentLane] - playerGroup.position.x);
-      playerMesh.rotation.z = laneOffset * 0.06;
 
       // Mist Walk Skill Handler
       if (isMistWalk) {
@@ -1356,6 +1446,9 @@ for (let i = obstacles.length - 1; i >= 0; i--) {
       energy = 100;
       speed = baseSpeed;
       currentLane = 1;
+      
+      // Setup player with selected character
+      createPlayer();
       playerGroup.position.set(0, 0, 0);
       deactivateMistWalk();
 
@@ -1417,6 +1510,27 @@ for (let i = obstacles.length - 1; i >= 0; i--) {
 
     function setupUIEvents() {
       document.getElementById('btn-play').addEventListener('click', startGameplay);
+      
+      // CHARACTERS MENU
+      document.getElementById('btn-chars').addEventListener('click', () => {
+        document.getElementById('main-menu').classList.add('hidden');
+        document.getElementById('char-screen').classList.remove('hidden');
+      });
+      document.getElementById('btn-char-back').addEventListener('click', () => {
+        document.getElementById('char-screen').classList.add('hidden');
+        document.getElementById('main-menu').classList.remove('hidden');
+      });
+      
+      // CHAR SELECTION
+      const charCards = document.querySelectorAll('.char-card');
+      charCards.forEach(card => {
+        card.addEventListener('click', function() {
+          charCards.forEach(c => c.classList.remove('active'));
+          this.classList.add('active');
+          selectedCharIndex = parseInt(this.getAttribute('data-char'));
+        });
+      });
+
       document.getElementById('btn-how').addEventListener('click', () => {
         document.getElementById('main-menu').classList.add('hidden');
         document.getElementById('how-screen').classList.remove('hidden');
@@ -1455,9 +1569,9 @@ for (let i = obstacles.length - 1; i >= 0; i--) {
 
       if (currentState === GAME_STATES.PLAYING) {
         // Pertambahan Jarak dan Kecepatan Bertahap
-        distance += speed * delta * 0.2;
-        score += Math.floor(speed * delta * 0.1);
-        speed = Math.min(maxSpeed, speed + delta * 0.15);
+        distance += speed * delta * 0.25; // Jarak bertambah lebih cepat
+        score += Math.floor(speed * delta * 0.15);
+        speed = Math.min(maxSpeed, speed + delta * 0.25); // Akselerasi lebih cepat
 
         updatePlayer(delta);
         updateWorld(delta);
